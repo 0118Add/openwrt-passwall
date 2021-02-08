@@ -1,5 +1,5 @@
-local uci = require"luci.model.uci".cursor()
-local appname = "passwall"
+local api = require "luci.model.cbi.passwall.api.api"
+local appname = api.appname
 
 m = Map(appname)
 
@@ -7,12 +7,6 @@ m = Map(appname)
 s = m:section(TypedSection, "global_delay", translate("Delay Settings"))
 s.anonymous = true
 s.addremove = false
-
----- Delay Start
-o = s:option(Value, "start_delay", translate("Delay Start"),
-             translate("Units:seconds"))
-o.default = "1"
-o.rmempty = true
 
 ---- Open and close Daemon
 o = s:option(Flag, "start_daemon", translate("Open and close Daemon"))
@@ -83,16 +77,6 @@ o.default = "1:65535"
 o:value("1:65535", translate("All"))
 o:value("53", "DNS")
 
----- Multi SS/SSR Process Option
-o = s:option(Value, "process", translate("Multi Process Option"))
-o.default = "0"
-o.rmempty = false
-o:value("0", translate("Auto"))
-o:value("1", translate("1 Process"))
-o:value("2", "2 " .. translate("Process"))
-o:value("3", "3 " .. translate("Process"))
-o:value("4", "4 " .. translate("Process"))
-
 --[[
 ---- Proxy IPv6
 o = s:option(Flag, "proxy_ipv6", translate("Proxy IPv6"),
@@ -121,28 +105,9 @@ o.rmempty = true
 --]]
 
 -- [[ Other Settings ]]--
-s = m:section(TypedSection, "global_other", translate("Other Settings"),
-              "<font color='red'>" .. translatef(
-                  "You can only set up a maximum of %s nodes for the time being, Used for access control.",
-                  "3") .. "</font>")
+s = m:section(TypedSection, "global_other", translate("Other Settings"))
 s.anonymous = true
 s.addremove = false
-
----- TCP Node Number Option
-o = s:option(ListValue, "tcp_node_num", "TCP" .. translate("Node Number"))
-o.default = "1"
-o.rmempty = false
-o:value("1")
-o:value("2")
-o:value("3")
-
----- UDP Node Number Option
-o = s:option(ListValue, "udp_node_num", "UDP" .. translate("Node Number"))
-o.default = "1"
-o.rmempty = false
-o:value("1")
-o:value("2")
-o:value("3")
 
 o = s:option(MultiValue, "status", translate("Status info"))
 o:value("big_icon", translate("Big icon")) -- 大图标
