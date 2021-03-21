@@ -59,7 +59,7 @@ s = m:section(NamedSection, arg[1], "nodes", "")
 s.addremove = false
 s.dynamic = false
 
-share = s:option(DummyValue, "passwall", translate("Share Current"))
+share = s:option(DummyValue, "passwall", " ")
 share.rawhtml  = true
 share.template = "passwall/node_list/link_share_man"
 share.value = arg[1]
@@ -72,7 +72,7 @@ type = s:option(ListValue, "type", translate("Type"))
 if api.is_finded("ipt2socks") then
     type:value("Socks", translate("Socks"))
 end
-if api.is_finded("ss-redir") then
+if api.is_finded("sslocal") or api.is_finded("ss-redir") then
     type:value("SS", translate("Shadowsocks"))
 end
 if api.is_finded("ssr-redir") then
@@ -116,7 +116,7 @@ for k, e in ipairs(api.get_valid_nodes()) do
     if e.node_type == "normal" then
         nodes_table[#nodes_table + 1] = {
             id = e[".name"],
-            remarks = e.remarks_name
+            remarks = e["remark"]
         }
     end
 end
@@ -130,16 +130,19 @@ balancing_node:depends("protocol", "_balancing")
 uci:foreach(appname, "shunt_rules", function(e)
     o = s:option(ListValue, e[".name"], string.format('* <a href="%s" target="_blank">%s</a>', api.url("shunt_rules", e[".name"]), translate(e.remarks)))
     o:value("nil", translate("Close"))
+    o:value("_default", translate("Default"))
     o:value("_direct", translate("Direct Connection"))
     o:value("_blackhole", translate("Blackhole"))
     o:depends("protocol", "_shunt")
 
-    _proxy = s:option(Flag, e[".name"] .. "_proxy", translate(e.remarks) .. translate("Preproxy"), translate("Use the default node for the transit."))
-    _proxy.default = 0
+    if #nodes_table > 0 then
+        _proxy = s:option(Flag, e[".name"] .. "_proxy", translate(e.remarks) .. translate("Preproxy"), translate("Use the default node for the transit."))
+        _proxy.default = 0
 
-    for k, v in pairs(nodes_table) do
-        o:value(v.id, v.remarks)
-        _proxy:depends(e[".name"], v.id)
+        for k, v in pairs(nodes_table) do
+            o:value(v.id, v.remarks)
+            _proxy:depends(e[".name"], v.id)
+        end
     end
 end)
 
@@ -151,17 +154,19 @@ end
 shunt_tips:depends("protocol", "_shunt")
 
 default_node = s:option(ListValue, "default_node", translate("Default") .. " " .. translate("Node"))
-default_node:value("nil", translate("Close"))
+default_node:value("_direct", translate("Direct Connection"))
+default_node:value("_blackhole", translate("Blackhole"))
 for k, v in pairs(nodes_table) do default_node:value(v.id, v.remarks) end
 default_node:depends("protocol", "_shunt")
 
-default_proxy = s:option(Flag, "default_proxy", translate("Default") .. translate("Node") .. translate("Preproxy"), translate("Use the under node for the transit."))
-default_proxy.default = 0
-default_proxy:depends("protocol", "_shunt")
-
-o = s:option(ListValue, "main_node", " ")
-for k, v in pairs(nodes_table) do o:value(v.id, v.remarks) end
-o:depends("default_proxy", "1")
+if #nodes_table > 0 then
+    o = s:option(ListValue, "main_node", translate("Default") .. " " .. translate("Node") .. translate("Preproxy"), translate("Use this node proxy to forward the default node."))
+    o:value("nil", translate("Close"))
+    for k, v in pairs(nodes_table) do
+        o:value(v.id, v.remarks)
+        o:depends("default_node", v.id)
+    end
+end
 
 domainStrategy = s:option(ListValue, "domainStrategy", translate("Domain Strategy"))
 domainStrategy:value("AsIs")
